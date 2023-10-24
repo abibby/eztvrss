@@ -20,7 +20,7 @@ type Show struct {
 	Name string `db:"name"`
 
 	EZShowID int `db:"ez_show_id" xml:"-"`
-	EZShow   *builder.BelongsTo[*EZShow]
+
 	Episodes *builder.HasMany[*Episode]
 }
 
@@ -30,12 +30,19 @@ func ShowQuery() *builder.Builder[*Show] {
 
 var showTitleRE = regexp.MustCompile(`^(.+) (S\d+E\d+|\d{4} \d{2} \d{2}) (.+)$`)
 
-func FetchOrCreateShow(tx *sqlx.Tx, title string) (*Show, error) {
+func ShowNameFromTitle(title string) (string, error) {
 	matches := showTitleRE.FindStringSubmatch(title)
 	if len(matches) == 0 {
-		return nil, fmt.Errorf("title %s: %w", title, ErrFailedToParse)
+		return "", fmt.Errorf("title %s: %w", title, ErrFailedToParse)
 	}
-	name := matches[1]
+	return matches[1], nil
+}
+
+func FetchOrCreateShow(tx *sqlx.Tx, title string) (*Show, error) {
+	name, err := ShowNameFromTitle(title)
+	if err != nil {
+		return nil, err
+	}
 
 	s, err := ShowQuery().Where("name", "=", name).First(tx)
 	if err != nil {

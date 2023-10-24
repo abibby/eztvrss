@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"github.com/abibby/eztvrss/app/models"
 	"github.com/abibby/eztvrss/services/eztv"
 	"github.com/abibby/salusa/clog"
+	"github.com/abibby/salusa/database/builder"
 	"github.com/abibby/salusa/database/model"
 	"github.com/abibby/salusa/request"
 	"github.com/abibby/salusa/set"
@@ -23,6 +25,7 @@ import (
 type ShowsRequest struct {
 	ID      int    `url:"id"`
 	Slug    string `url:"slug"`
+	Query   string `query:"q"`
 	Request *http.Request
 	Ctx     context.Context
 }
@@ -66,8 +69,14 @@ var Shows = request.Handler(func(r *ShowsRequest) (*ShowsResponse, error) {
 		}
 		fetchedShows.Add(r.ID)
 	}
+	q := models.EpisodeQuery().WhereHas("Show", func(q *builder.SubBuilder) *builder.SubBuilder {
+		return q.Where("ez_show_id", "=", r.ID)
+	})
+	if r.Query != "" {
+		q = q.Where("title", "like", fmt.Sprintf("%%%s%%", r.Query))
+	}
 
-	episodes, err := models.EpisodeQuery().Get(tx)
+	episodes, err := q.Get(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +97,33 @@ func fetchShows(ctx context.Context, tx *sqlx.Tx, id int, slug string) error {
 	if err != nil {
 		return err
 	}
+	m := map[string]*models.Show{}
+	for _, e := range ezEpisodes {
+		name, err := models.ShowNameFromTitle(e.Title)
+		if err != nil {
+			clog.Use(ctx).Warn("failed to parse", "title", e.Title, "error", err)
+			continue
+		}
 
+		if _, ok := m[name]; !ok {
+			s, err := models.FetchOrCreateShow(tx, e.Title)
+			if errors.Is(err, models.ErrFailedToParse) {
+				clog.Use(ctx).Warn("failed to parse", "title", e.Title, "error", err)
+				continue
+			} else if err != nil {
+				return err
+			}
+
+			if s.EZShowID != id {
+				s.EZShowID = id
+				err = model.Save(tx, s)
+				if err != nil {
+					return err
+				}
+			}
+			m[name] = s
+		}
+	}
 	for _, e := range ezEpisodes {
 		ep, err := models.EpisodeQuery().Where("guid", "=", e.Link).First(tx)
 		if err != nil {
@@ -98,20 +133,16 @@ func fetchShows(ctx context.Context, tx *sqlx.Tx, id int, slug string) error {
 			continue
 		}
 
-		s, err := models.FetchOrCreateShow(tx, e.Title)
-		if errors.Is(err, models.ErrFailedToParse) {
-			clog.Use(ctx).Warn("failed to parse", "title", e.Title, "error", err)
-			continue
-		} else if err != nil {
-			return err
-		}
-
 		u, err := url.Parse(e.MagnetURI)
 		if err != nil {
 			clog.Use(ctx).Warn("failed to parse magnet", "magnet", e.MagnetURI, "error", err)
 			continue
 		}
-
+		name, err := models.ShowNameFromTitle(e.Title)
+		if err != nil {
+			continue
+		}
+		s := m[name]
 		err = model.Save(tx, &models.Episode{
 			Category:      "TV",
 			Link:          e.Link,

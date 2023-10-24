@@ -30,8 +30,8 @@ type Episode struct {
 	TorrentURI    string     `db:"torrent_uri"          xml:"-"`
 	Enclosure     *Enclosure `db:"-"                    xml:"enclosure"`
 
-	ShowID int `db:"show_id" xml:"-"`
-	Show   *builder.BelongsTo[*Show]
+	ShowID int                       `db:"show_id" xml:"-"`
+	Show   *builder.BelongsTo[*Show] `xml:"-"`
 }
 
 type MagnetURI struct {

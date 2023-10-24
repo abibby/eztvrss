@@ -5,8 +5,9 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/abibby/salusa/clog"
 	"github.com/abibby/eztvrss/app"
+	"github.com/abibby/eztvrss/app/events"
+	"github.com/abibby/salusa/clog"
 )
 
 func main() {
@@ -18,6 +19,8 @@ func main() {
 		clog.Use(ctx).Error("error bootstrapping", "error", err)
 		os.Exit(1)
 	}
+
+	app.Kernel.Dispatch(ctx, &events.FetchRSSEvent{})
 
 	err = app.Kernel.Run(ctx)
 	if err != nil {
