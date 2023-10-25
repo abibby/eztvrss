@@ -72,8 +72,8 @@ var Shows = request.Handler(func(r *ShowsRequest) (*ShowsResponse, error) {
 	q := models.EpisodeQuery().WhereHas("Show", func(q *builder.SubBuilder) *builder.SubBuilder {
 		return q.Where("ez_show_id", "=", r.ID)
 	})
-	if r.Query != "" {
-		q = q.Where("title", "like", fmt.Sprintf("%%%s%%", r.Query))
+	for _, word := range strings.Split(r.Query, " ") {
+		q = q.Where("title", "like", fmt.Sprintf("%%%s%%", word))
 	}
 
 	episodes, err := q.Get(tx)
