@@ -7,7 +7,6 @@ import (
 
 	"github.com/abibby/salusa/env"
 	"github.com/abibby/salusa/kernel"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/joho/godotenv"
 )
 
@@ -35,8 +34,6 @@ func Load(ctx context.Context) error {
 	DBPort = env.Int("DB_PORT", 3306)
 
 	EztvDomain = env.String("EZTV_DOMAIN", "https://eztv.re")
-	spew.Dump(DBHost)
-	os.Exit(1)
 	return nil
 }
 func Kernel() *kernel.KernelConfig {
