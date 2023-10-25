@@ -25,13 +25,13 @@ func Load(ctx context.Context) error {
 		return err
 	}
 
-	Port = env.Int("PORT", 6900)
+	Port = env.Int("PORT", 60575)
 
 	DBUsername = env.String("DB_USERNAME", "eztv")
 	DBPassword = env.String("DB_PASSWORD", "secret")
 	DBDatabase = env.String("DB_DATABASE", "eztv")
 	DBHost = env.String("DB_Host", "127.0.0.1")
-	DBPort = env.Int("DB_PORT", 5432)
+	DBPort = env.Int("DB_PORT", 3306)
 
 	EztvDomain = env.String("EZTV_DOMAIN", "https://eztv.re")
 
