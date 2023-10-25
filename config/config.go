@@ -7,6 +7,7 @@ import (
 
 	"github.com/abibby/salusa/env"
 	"github.com/abibby/salusa/kernel"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/joho/godotenv"
 )
 
@@ -30,11 +31,12 @@ func Load(ctx context.Context) error {
 	DBUsername = env.String("DB_USERNAME", "eztv")
 	DBPassword = env.String("DB_PASSWORD", "secret")
 	DBDatabase = env.String("DB_DATABASE", "eztv")
-	DBHost = env.String("DB_Host", "127.0.0.1")
+	DBHost = env.String("DB_HOST", "127.0.0.1")
 	DBPort = env.Int("DB_PORT", 3306)
 
 	EztvDomain = env.String("EZTV_DOMAIN", "https://eztv.re")
-
+	spew.Dump(DBHost)
+	os.Exit(1)
 	return nil
 }
 func Kernel() *kernel.KernelConfig {
